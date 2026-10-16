@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { rideService } from '../services';
-import { RideFilters } from '../services/mock/rideService';
+import { RideFilters } from '../services/supabase/rideService';
 import { Ride } from '../types';
 import { RideCard } from '../components/rides/RideCard';
 import { RideFilterSheet } from '../components/rides/RideFilterSheet';
 import { InstantBookModal } from '../components/rides/InstantBookModal';
 import { EmptyState } from '../components/common/EmptyState';
-import { Search, Filter, RotateCcw, Car } from 'lucide-react';
+import { Filter, RotateCcw, Car, AlertCircle } from 'lucide-react';
 
 export const RidesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRideForBook, setSelectedRideForBook] = useState<Ride | null>(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
   // Initialize filters from URL parameters
   const [filters, setFilters] = useState<RideFilters>({
@@ -36,9 +41,34 @@ export const RidesPage: React.FC = () => {
     return count;
   }, [filters]);
 
-  const rides = useMemo(() => {
-    return rideService.getAllRides(filters);
-  }, [filters]);
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    rideService
+      .getAllRides(filters)
+      .then((data) => {
+        if (isMounted) {
+          setRides(data);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error('Failed fetching rides:', err);
+          setErrorMessage(err.message || 'Could not load rides from database.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filters, refreshTrigger]);
 
   const handleResetFilters = () => {
     const emptyFilters: RideFilters = {
@@ -63,7 +93,9 @@ export const RidesPage: React.FC = () => {
             Find Student Rides
           </h1>
           <p className="text-xs text-[#6E6E73] mt-0.5">
-            Showing {rides.length} available carpool journey{rides.length === 1 ? '' : 's'}
+            {isLoading
+              ? 'Searching real-time carpools...'
+              : `Showing ${rides.length} available carpool journey${rides.length === 1 ? '' : 's'}`}
           </p>
         </div>
 
@@ -71,7 +103,7 @@ export const RidesPage: React.FC = () => {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setIsMobileFilterOpen(true)}
-            className="lg:hidden flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#D2D2D7] bg-[#F5F5F7] text-xs font-semibold text-[#1D1D1F]"
+            className="lg:hidden flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#D2D2D7] bg-[#F5F5F7] text-xs font-semibold text-[#1D1D1F] cursor-pointer"
           >
             <Filter className="w-4 h-4 text-[#0071E3]" />
             <span>Filters</span>
@@ -85,7 +117,7 @@ export const RidesPage: React.FC = () => {
           {activeFilterCount > 0 && (
             <button
               onClick={handleResetFilters}
-              className="p-2.5 rounded-xl border border-[#D2D2D7] text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]"
+              className="p-2.5 rounded-xl border border-[#D2D2D7] text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] cursor-pointer"
               title="Reset all filters"
             >
               <RotateCcw className="w-4 h-4" />
@@ -108,11 +140,45 @@ export const RidesPage: React.FC = () => {
 
         {/* Rides Grid */}
         <div className="flex-1">
-          {rides.length === 0 ? (
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl mb-4 text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              <button
+                onClick={() => setRefreshTrigger((c) => c + 1)}
+                className="font-semibold underline ml-2 cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="bg-white rounded-3xl border border-[#D2D2D7]/70 p-5 space-y-4 animate-pulse shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 bg-[#E5E5EA] rounded-full w-1/3" />
+                    <div className="h-4 bg-[#E5E5EA] rounded-full w-1/5" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-[#E5E5EA] rounded-full w-3/4" />
+                    <div className="h-3 bg-[#E5E5EA] rounded-full w-1/2" />
+                  </div>
+                  <div className="h-9 bg-[#E5E5EA] rounded-xl w-full" />
+                </div>
+              ))}
+            </div>
+          ) : rides.length === 0 ? (
             <EmptyState
               icon={Car}
               title="No matching rides found"
-              description="Try adjusting your route, changing the date, or clearing your active filters to see all student carpools."
+              description="No open student carpool matches your criteria. Try adjusting your route, changing the date, or resetting filters."
               actionText="Reset All Filters"
               onAction={handleResetFilters}
             />
@@ -137,8 +203,7 @@ export const RidesPage: React.FC = () => {
           onClose={() => setSelectedRideForBook(null)}
           onSuccess={() => {
             setSelectedRideForBook(null);
-            // Re-trigger memo update
-            setFilters({ ...filters });
+            setRefreshTrigger((c) => c + 1);
           }}
         />
       )}

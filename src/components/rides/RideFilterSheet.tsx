@@ -1,5 +1,5 @@
 import React from 'react';
-import { RideFilters } from '../../services/mock/rideService';
+import type { RideFilters } from '../../services';
 import { X, Filter, RotateCcw, Search } from 'lucide-react';
 
 interface RideFilterSheetProps {

@@ -22,18 +22,18 @@ export const MessagesPage: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      const convs = messageService.getUserConversations(currentUser.id);
-      setConversations(convs);
-      if (convs.length > 0 && !activeConv) {
-        setActiveConv(convs[0]);
-      }
+      messageService.getUserConversations(currentUser.id).then((convs) => {
+        setConversations(convs);
+        if (convs.length > 0 && !activeConv) {
+          setActiveConv(convs[0]);
+        }
+      }).catch(console.error);
     }
   }, [currentUser]);
 
   useEffect(() => {
     if (activeConv) {
-      const msgs = messageService.getMessages(activeConv.id);
-      setMessages(msgs);
+      messageService.getMessages(activeConv.id).then(setMessages).catch(console.error);
     }
   }, [activeConv]);
 
@@ -56,7 +56,8 @@ export const MessagesPage: React.FC = () => {
       setInputText('');
 
       // Refresh conversations list to update lastMessage
-      setConversations(messageService.getUserConversations(currentUser.id));
+      const updatedConvs = await messageService.getUserConversations(currentUser.id);
+      setConversations(updatedConvs);
     } catch (err) {
       console.error('Failed to send message', err);
     }

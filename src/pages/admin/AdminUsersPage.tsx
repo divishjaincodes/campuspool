@@ -15,9 +15,17 @@ import {
 
 export const AdminUsersPage: React.FC = () => {
   const { showToast } = useToast();
-  const [users, setUsers] = useState<User[]>(authService.getAllUsers());
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [suspendingUser, setSuspendingUser] = useState<User | null>(null);
+
+  const loadUsers = () => {
+    authService.getAllUsers().then(setUsers).catch(console.error);
+  };
+
+  React.useEffect(() => {
+    loadUsers();
+  }, []);
 
   const filteredUsers = users.filter(
     (u) =>
@@ -29,7 +37,7 @@ export const AdminUsersPage: React.FC = () => {
     if (!suspendingUser) return;
     try {
       const updated = await adminService.toggleUserSuspension(suspendingUser.id);
-      setUsers(authService.getAllUsers());
+      loadUsers();
       showToast(
         `Account for ${updated.fullName} is now ${updated.isSuspended ? 'suspended' : 'restored'}.`,
         'info'

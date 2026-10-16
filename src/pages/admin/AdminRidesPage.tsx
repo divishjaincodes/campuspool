@@ -17,17 +17,25 @@ import {
 
 export const AdminRidesPage: React.FC = () => {
   const { showToast } = useToast();
-  const [rides, setRides] = useState<Ride[]>(rideService.getAllRides());
+  const [rides, setRides] = useState<Ride[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cancellingRide, setCancellingRide] = useState<Ride | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  const loadRides = () => {
+    rideService.getAllRides().then(setRides).catch(console.error);
+  };
+
+  React.useEffect(() => {
+    loadRides();
+  }, []);
+
   const filteredRides = rides.filter((r) => {
     const matchesSearch =
       r.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.creator?.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+      (r.creator?.fullName && r.creator.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -39,7 +47,7 @@ export const AdminRidesPage: React.FC = () => {
         cancellingRide.id,
         cancelReason || 'Cancelled by safety moderator'
       );
-      setRides(rideService.getAllRides());
+      loadRides();
       showToast('Ride has been cancelled by moderator.', 'info');
       setCancellingRide(null);
       setCancelReason('');

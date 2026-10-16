@@ -20,7 +20,10 @@ export const NotificationsPage: React.FC = () => {
 
   const loadNotifications = () => {
     if (currentUser) {
-      setNotifications(notificationService.getUserNotifications(currentUser.id));
+      notificationService
+        .getUserNotifications(currentUser.id)
+        .then(setNotifications)
+        .catch(console.error);
     }
   };
 

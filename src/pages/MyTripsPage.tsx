@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -37,10 +37,41 @@ export const MyTripsPage: React.FC = () => {
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewComment, setReviewComment] = useState<string>('');
 
-  if (!currentUser) return null;
+  const [myCreatedRides, setMyCreatedRides] = useState<Ride[]>([]);
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [rideBookingsMap, setRideBookingsMap] = useState<Record<string, Booking[]>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const myCreatedRides = rideService.getRidesCreatedBy(currentUser.id);
-  const myBookings = bookingService.getBookingsByPassenger(currentUser.id);
+  const fetchMyTrips = async () => {
+    if (!currentUser) return;
+    setIsLoading(true);
+    try {
+      const [rides, bookings] = await Promise.all([
+        rideService.getRidesCreatedBy(currentUser.id),
+        bookingService.getBookingsByPassenger(currentUser.id),
+      ]);
+      setMyCreatedRides(rides);
+      setMyBookings(bookings);
+
+      const bMap: Record<string, Booking[]> = {};
+      await Promise.all(
+        rides.map(async (r) => {
+          bMap[r.id] = await bookingService.getBookingsForRide(r.id);
+        })
+      );
+      setRideBookingsMap(bMap);
+    } catch (err) {
+      console.error('Failed fetching user trips:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyTrips();
+  }, [currentUser]);
+
+  if (!currentUser) return null;
 
   const handleTabChange = (tab: string) => {
     setSearchParams({ tab });
@@ -52,6 +83,7 @@ export const MyTripsPage: React.FC = () => {
       await rideService.cancelRide(cancelRideTarget.id, 'Cancelled by student creator.');
       showToast('Ride cancelled. Booked seats released and passengers notified.', 'info');
       setCancelRideTarget(null);
+      await fetchMyTrips();
     } catch {
       showToast('Failed to cancel ride', 'error');
     }
@@ -60,9 +92,10 @@ export const MyTripsPage: React.FC = () => {
   const handleConfirmCancelBooking = async () => {
     if (!cancelBookingTarget || !currentUser) return;
     try {
-      await bookingService.cancelBooking(cancelBookingTarget.id, currentUser.id);
+      await bookingService.cancelBooking(cancelBookingTarget.id);
       showToast('Your booking was cancelled and the seat released.', 'info');
       setCancelBookingTarget(null);
+      await fetchMyTrips();
     } catch {
       showToast('Failed to cancel booking', 'error');
     }
@@ -158,8 +191,9 @@ export const MyTripsPage: React.FC = () => {
             </div>
           ) : (
             myCreatedRides.map((ride) => {
-              const rideBookings = bookingService.getBookingsForRide(ride.id);
-              const confirmedPassengers = rideBookings.filter((b) => b.status === 'confirmed');
+              const confirmedPassengers = (rideBookingsMap[ride.id] || []).filter(
+                (b: Booking) => b.status === 'confirmed'
+              );
 
               return (
                 <div

@@ -3,16 +3,34 @@ import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { Car, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
 export const ForgotPasswordPage: React.FC = () => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setIsSubmitted(true);
-    showToast('Demo password recovery link simulated!', 'info');
+
+    setIsLoading(true);
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim().toLowerCase(),
+          { redirectTo: `${window.location.origin}/settings` }
+        );
+        if (error) throw error;
+      }
+      setIsSubmitted(true);
+      showToast('Password recovery instructions sent to your email.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send recovery email', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

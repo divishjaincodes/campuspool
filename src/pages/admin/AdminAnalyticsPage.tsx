@@ -1,16 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services';
 import { BarChart3, TrendingUp, Users, Car, CheckCircle2 } from 'lucide-react';
 
 export const AdminAnalyticsPage: React.FC = () => {
-  const stats = adminService.getStats();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeRides: 0,
+    totalBookings: 0,
+    completedRides: 0,
+    openReports: 0,
+    popularRoutes: [] as { route: string; count: number }[],
+    ridesByStatus: [] as { status: string; count: number }[],
+  });
+
+  useEffect(() => {
+    adminService.getStats().then(setStats).catch(console.error);
+  }, []);
 
   return (
     <div className="space-y-6">
       <div className="bg-[#FFFFFF] rounded-2xl border border-[#D2D2D7]/70 p-4 shadow-sm">
         <h2 className="text-base font-bold text-[#1D1D1F]">Platform Analytics & Trends</h2>
         <p className="text-xs text-[#6E6E73]">
-          Live insights calculated dynamically from the active mock database
+          Live insights calculated dynamically from the Supabase production database
         </p>
       </div>
 

@@ -48,6 +48,7 @@ export const SignupPage: React.FC = () => {
       await signup({
         fullName: fullName.trim(),
         email: email.trim(),
+        password,
         college: college.trim(),
         gender,
         phone: phone.trim(),

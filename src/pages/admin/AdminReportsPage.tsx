@@ -6,10 +6,18 @@ import { Flag, CheckCircle2, AlertTriangle, ShieldCheck, Clock } from 'lucide-re
 
 export const AdminReportsPage: React.FC = () => {
   const { showToast } = useToast();
-  const [reports, setReports] = useState<SafetyReport[]>(reportService.getAllReports());
+  const [reports, setReports] = useState<SafetyReport[]>([]);
   const [editingReport, setEditingReport] = useState<SafetyReport | null>(null);
   const [newStatus, setNewStatus] = useState<ReportStatus>('resolved');
   const [resolutionNote, setResolutionNote] = useState<string>('');
+
+  const loadReports = () => {
+    reportService.getAllReports().then(setReports).catch(console.error);
+  };
+
+  React.useEffect(() => {
+    loadReports();
+  }, []);
 
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +25,7 @@ export const AdminReportsPage: React.FC = () => {
 
     try {
       await reportService.updateReportStatus(editingReport.id, newStatus, resolutionNote);
-      setReports(reportService.getAllReports());
+      loadReports();
       showToast(`Report updated to ${newStatus}`, 'success');
       setEditingReport(null);
       setResolutionNote('');

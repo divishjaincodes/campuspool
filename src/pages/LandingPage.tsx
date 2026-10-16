@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { rideService } from '../services';
@@ -29,8 +29,30 @@ export const LandingPage: React.FC = () => {
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState('');
   const [selectedRideForBook, setSelectedRideForBook] = useState<Ride | null>(null);
+  const [upcomingRides, setUpcomingRides] = useState<Ride[]>([]);
+  const [isLoadingRides, setIsLoadingRides] = useState<boolean>(true);
 
-  const upcomingRides = rideService.getAllRides().filter((r) => r.status === 'open').slice(0, 4);
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingRides(true);
+    rideService
+      .getAllRides()
+      .then((rides) => {
+        if (isMounted) {
+          setUpcomingRides(rides.filter((r) => r.status === 'open').slice(0, 4));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed fetching landing rides:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingRides(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,15 +198,55 @@ export const LandingPage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {upcomingRides.map((ride) => (
-            <RideCard
-              key={ride.id}
-              ride={ride}
-              onBookClick={(r) => setSelectedRideForBook(r)}
-            />
-          ))}
-        </div>
+        {isLoadingRides ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((n) => (
+              <div
+                key={n}
+                className="bg-white rounded-3xl border border-[#D2D2D7]/70 p-5 space-y-4 animate-pulse shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-4 bg-[#E5E5EA] rounded-full w-1/3" />
+                  <div className="h-4 bg-[#E5E5EA] rounded-full w-1/5" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-[#E5E5EA] rounded-full w-3/4" />
+                  <div className="h-3 bg-[#E5E5EA] rounded-full w-1/2" />
+                </div>
+                <div className="h-8 bg-[#E5E5EA] rounded-xl w-full" />
+              </div>
+            ))}
+          </div>
+        ) : upcomingRides.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {upcomingRides.map((ride) => (
+              <RideCard
+                key={ride.id}
+                ride={ride}
+                onBookClick={(r) => setSelectedRideForBook(r)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl border border-[#D2D2D7]/80 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-sm space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center mx-auto">
+              <Car className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-base text-[#1D1D1F]">No rides scheduled yet</h3>
+              <p className="text-xs text-[#6E6E73] max-w-sm mx-auto">
+                Commuting between Bhopal, Sehore, or the VIT campus soon? Be the first student to publish a journey!
+              </p>
+            </div>
+            <Link
+              to="/create-ride"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-sm transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Offer a Ride</span>
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* 3. How It Works - 3 Step Process */}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { rideService, bookingService, notificationService } from '../services';
@@ -18,15 +18,38 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react';
+import { Ride, Booking, Notification } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
 
-  if (!currentUser) return null;
+  const [myRides, setMyRides] = useState<Ride[]>([]);
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const myRides = rideService.getRidesCreatedBy(currentUser.id);
-  const myBookings = bookingService.getBookingsByPassenger(currentUser.id);
-  const notifications = notificationService.getUserNotifications(currentUser.id).slice(0, 3);
+  useEffect(() => {
+    if (!currentUser) return;
+    setIsLoading(true);
+    Promise.all([
+      rideService.getRidesCreatedBy(currentUser.id),
+      bookingService.getBookingsByPassenger(currentUser.id),
+      notificationService.getUserNotifications(currentUser.id),
+    ])
+      .then(([rides, bookings, notifs]) => {
+        setMyRides(rides);
+        setMyBookings(bookings);
+        setNotifications(notifs.slice(0, 3));
+      })
+      .catch((err) => {
+        console.error('Failed loading dashboard data:', err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [currentUser]);
+
+  if (!currentUser) return null;
 
   const activeRides = myRides.filter((r) => r.status === 'open' || r.status === 'full');
   const confirmedBookings = myBookings.filter((b) => b.status === 'confirmed');

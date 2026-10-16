@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -28,9 +28,17 @@ export const Navbar: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      setUnreadCount(notificationService.getUnreadCount(currentUser.id));
+      notificationService.getUnreadCount(currentUser.id).then(setUnreadCount).catch(() => setUnreadCount(0));
+    } else {
+      setUnreadCount(0);
     }
   }, [currentUser, location.pathname]);
+
+  const handleLogout = async () => {
+    setProfileDropdownOpen(false);
+    await logout();
+    navigate('/login');
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -208,6 +216,14 @@ export const Navbar: React.FC = () => {
                             Admin Console
                           </Link>
                         )}
+                        <div className="border-t border-[#F5F5F7] my-1" />
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 cursor-pointer"
+                        >
+                          Sign Out
+                        </button>
                       </div>
                     </div>
                   </>

@@ -29,31 +29,33 @@ export const CreateRidePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Form State
-  const [origin, setOrigin] = useState<string>('Bhopal (MP Nagar Zone 2)');
+  const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('VIT Bhopal Campus');
-  const [intermediateStops, setIntermediateStops] = useState<string[]>(['ISBT Bhopal']);
+  const [intermediateStops, setIntermediateStops] = useState<string[]>([]);
   const [stopInput, setStopInput] = useState<string>('');
 
-  const [departureDate, setDepartureDate] = useState<string>(
-    new Date(Date.now() + 86400000).toISOString().split('T')[0]
-  );
+  const [departureDate, setDepartureDate] = useState<string>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
   const [departureTime, setDepartureTime] = useState<string>('08:00');
-  const [estimatedDuration, setEstimatedDuration] = useState<string>('1h 20m (65 km)');
+  const [estimatedDuration, setEstimatedDuration] = useState<string>('1h 15m');
 
-  const [vehicleType, setVehicleType] = useState<string>('Sedan');
-  const [vehicleModel, setVehicleModel] = useState<string>(currentUser?.vehicle?.model || 'Honda City');
+  const [vehicleType, setVehicleType] = useState<string>(currentUser?.vehicle?.type || 'Car');
+  const [vehicleModel, setVehicleModel] = useState<string>(currentUser?.vehicle?.model || '');
   const [totalCapacity, setTotalCapacity] = useState<number>(4);
   const [seatsOffered, setSeatsOffered] = useState<number>(3);
 
   const [pricingType, setPricingType] = useState<'fixed' | 'shared'>('fixed');
-  const [pricePerSeat, setPricePerSeat] = useState<number>(220);
-  const [totalTripCost, setTotalTripCost] = useState<number>(880);
+  const [pricePerSeat, setPricePerSeat] = useState<number>(150);
+  const [totalTripCost, setTotalTripCost] = useState<number>(600);
   const [contributingPassengersCount, setContributingPassengersCount] = useState<number>(4);
 
   const [genderPreference, setGenderPreference] = useState<'everyone' | 'women_only'>('everyone');
   const [luggageAllowance, setLuggageAllowance] = useState<'none' | 'small' | 'medium' | 'large'>('medium');
   const [acAvailable, setAcAvailable] = useState<boolean>(true);
-  const [notes, setNotes] = useState<string>('Leaving on time. Safe commuting with fellow VIT students.');
+  const [notes, setNotes] = useState<string>('');
 
   // Intermediate Stop Handlers
   const addStop = () => {

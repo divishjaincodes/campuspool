@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import type { Ride } from '../types';
 import { rideService, reviewService, reportService } from '../services';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -36,14 +37,53 @@ export const RideDetailPage: React.FC = () => {
   const [reportCategory, setReportCategory] = useState<any>('inappropriate_behaviour');
   const [reportDescription, setReportDescription] = useState('');
 
-  const ride = rideService.getRideById(id || '');
+  const [ride, setRide] = useState<Ride | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!ride) {
+  const fetchRideData = async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await rideService.getRideById(id);
+      setRide(data);
+      if (data?.creatorId) {
+        const revs = await reviewService.getReviewsForUser(data.creatorId);
+        setReviews(revs);
+      }
+    } catch (err: any) {
+      console.error('Failed to load ride:', err);
+      setError(err.message || 'Ride not found');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRideData();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-4">
+        <div className="h-6 bg-[#E5E5EA] rounded-full w-32 animate-pulse" />
+        <div className="bg-white rounded-3xl border border-[#D2D2D7]/80 p-8 space-y-6 animate-pulse">
+          <div className="h-5 bg-[#E5E5EA] rounded-full w-1/4" />
+          <div className="h-10 bg-[#E5E5EA] rounded-2xl w-3/4" />
+          <div className="h-32 bg-[#E5E5EA] rounded-2xl w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !ride) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h2 className="text-xl font-bold text-[#1D1D1F]">Ride Not Found</h2>
         <p className="text-xs text-[#6E6E73] mt-2">
-          This ride may have been removed or does not exist.
+          {error || 'This ride may have been cancelled or does not exist.'}
         </p>
         <Link
           to="/rides"
@@ -58,7 +98,6 @@ export const RideDetailPage: React.FC = () => {
   const isCreator = currentUser?.id === ride.creatorId;
   const isFull = ride.status === 'full' || ride.seatsRemaining === 0;
   const isCancelled = ride.status === 'cancelled';
-  const reviews = reviewService.getReviewsForUser(ride.creatorId);
 
   const handleCancelRide = async () => {
     try {
@@ -319,7 +358,10 @@ export const RideDetailPage: React.FC = () => {
         <InstantBookModal
           ride={ride}
           onClose={() => setShowBookModal(false)}
-          onSuccess={() => setShowBookModal(false)}
+          onSuccess={() => {
+            setShowBookModal(false);
+            fetchRideData();
+          }}
         />
       )}
 

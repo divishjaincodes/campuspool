@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services';
+import { AdminStats } from '../../services/supabase/miscServices';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -12,7 +13,19 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const stats = adminService.getStats();
+  const [stats, setStats] = useState<AdminStats>({
+    totalUsers: 0,
+    activeRides: 0,
+    totalBookings: 0,
+    completedRides: 0,
+    openReports: 0,
+    popularRoutes: [],
+    ridesByStatus: [],
+  });
+
+  useEffect(() => {
+    adminService.getStats().then(setStats).catch(console.error);
+  }, []);
 
   return (
     <div className="space-y-6">

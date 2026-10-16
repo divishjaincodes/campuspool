@@ -1,9 +1,12 @@
-export { authService } from './mock/authService';
-export { rideService } from './mock/rideService';
-export { bookingService } from './mock/bookingService';
-export { notificationService } from './mock/notificationService';
-export { messageService } from './mock/messageService';
-export { reviewService } from './mock/reviewService';
-export { reportService } from './mock/reportService';
-export { adminService } from './mock/adminService';
-export { resetDemoData } from './mockStorage';
+export { authService } from './supabase/authService';
+export { rideService } from './supabase/rideService';
+export type { RideFilters } from './supabase/rideService';
+export { bookingService } from './supabase/bookingService';
+export { messageService } from './supabase/messageService';
+export {
+  notificationService,
+  reviewService,
+  reportService,
+  adminService,
+} from './supabase/miscServices';
+export { supabase, isSupabaseConfigured } from '../lib/supabase';

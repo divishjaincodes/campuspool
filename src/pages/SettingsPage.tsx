@@ -1,40 +1,38 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { resetDemoData } from '../services';
-import { ConfirmModal } from '../components/common/ConfirmModal';
 import {
-  RotateCcw,
   Bell,
   Shield,
   LogOut,
-  Users,
+  User as UserIcon,
   CheckCircle2,
-  Trash2,
+  Mail,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
-  const { currentUser, switchUser, refreshUser, allUsers } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [showResetModal, setShowResetModal] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!currentUser) return null;
 
-  const handleResetData = () => {
-    resetDemoData();
-    refreshUser();
-    showToast('Demo dataset has been restored to factory seed state.', 'success');
-    setShowResetModal(false);
-  };
-
-  const handleLogout = () => {
-    showToast('Signed out of demo session.', 'info');
-    navigate('/login');
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      showToast('Signed out of CampusPool.', 'info');
+      navigate('/login');
+    } catch {
+      showToast('Failed to sign out', 'error');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -44,43 +42,28 @@ export const SettingsPage: React.FC = () => {
           Account Settings & Preferences
         </h1>
         <p className="text-xs text-[#6E6E73] mt-0.5">
-          Configure notifications, switch test students, and manage demo storage
+          Manage your verified student credentials, notifications, and security session
         </p>
       </div>
 
-      {/* Demo Switcher Box */}
-      <div className="bg-[#FFFFFF] rounded-3xl border border-[#D2D2D7]/80 p-6 shadow-sm space-y-3 text-xs">
+      {/* Account Info Box */}
+      <div className="bg-[#FFFFFF] rounded-3xl border border-[#D2D2D7]/80 p-6 shadow-sm space-y-4 text-xs">
         <h2 className="font-bold text-sm text-[#1D1D1F] flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#0071E3]" />
-          Demo Student Accounts
+          <UserIcon className="w-4 h-4 text-[#0071E3]" />
+          Verified Student Account
         </h2>
-        <p className="text-[#6E6E73]">
-          Quickly switch between registered students to test instant booking, women-only restrictions, and ride offering.
-        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-          {allUsers.map((u) => (
-            <button
-              key={u.id}
-              onClick={() => {
-                switchUser(u.id);
-                showToast(`Switched to ${u.fullName}`, 'info');
-              }}
-              className={`p-3 rounded-xl border text-left flex items-center justify-between transition ${
-                u.id === currentUser.id
-                  ? 'border-[#0071E3] bg-[#0071E3]/5 font-semibold text-[#0071E3]'
-                  : 'border-[#D2D2D7] text-[#1D1D1F] hover:bg-[#F5F5F7]'
-              }`}
-            >
-              <div className="truncate">
-                <p className="font-bold">{u.fullName}</p>
-                <p className="text-[10px] text-[#6E6E73] capitalize">
-                  {u.gender} • {u.role}
-                </p>
-              </div>
-              {u.id === currentUser.id && <CheckCircle2 className="w-4 h-4 text-[#0071E3]" />}
-            </button>
-          ))}
+        <div className="p-3 rounded-2xl bg-[#F5F5F7] flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="font-bold text-[#1D1D1F] text-sm">{currentUser.fullName}</p>
+            <p className="text-[#6E6E73] text-[11px] flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-[#0071E3]" />
+              {currentUser.email}
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+          </span>
         </div>
       </div>
 
@@ -102,7 +85,7 @@ export const SettingsPage: React.FC = () => {
             type="checkbox"
             checked={pushNotifs}
             onChange={(e) => setPushNotifs(e.target.checked)}
-            className="w-4 h-4 accent-[#0071E3]"
+            className="w-4 h-4 accent-[#0071E3] cursor-pointer"
           />
         </div>
 
@@ -117,39 +100,35 @@ export const SettingsPage: React.FC = () => {
             type="checkbox"
             checked={emailNotifs}
             onChange={(e) => setEmailNotifs(e.target.checked)}
-            className="w-4 h-4 accent-[#0071E3]"
+            className="w-4 h-4 accent-[#0071E3] cursor-pointer"
           />
         </div>
       </div>
 
-      {/* Danger Zone: Reset Data */}
-      <div className="bg-red-50/50 rounded-3xl border border-red-200 p-6 space-y-3 text-xs">
-        <h2 className="font-bold text-sm text-red-700 flex items-center gap-2">
-          <Trash2 className="w-4 h-4" />
-          Prototype Data Management
+      {/* Security & Sign Out Section */}
+      <div className="bg-[#FFFFFF] rounded-3xl border border-[#D2D2D7]/80 p-6 shadow-sm space-y-4 text-xs">
+        <h2 className="font-bold text-sm text-[#1D1D1F] flex items-center gap-2">
+          <Shield className="w-4 h-4 text-red-500" />
+          Session & Security
         </h2>
-        <p className="text-red-600/90 leading-relaxed">
-          Resetting will clear all newly added rides and bookings, restoring the fresh default seed dataset.
-        </p>
 
-        <button
-          onClick={() => setShowResetModal(true)}
-          className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition"
-        >
-          Reset Demo Dataset
-        </button>
+        <div className="flex items-center justify-between pt-2">
+          <div>
+            <p className="font-semibold text-[#1D1D1F]">Sign Out</p>
+            <p className="text-[11px] text-[#6E6E73]">
+              Sign out of this browser session. You can sign back in anytime.
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
+          </button>
+        </div>
       </div>
-
-      {/* Reset Modal */}
-      <ConfirmModal
-        isOpen={showResetModal}
-        title="Reset All Prototype Data?"
-        message="This action will restore all default seed rides, instant bookings, and users. Any rides created in this session will be reverted."
-        confirmText="Yes, Reset"
-        isDestructive={true}
-        onConfirm={handleResetData}
-        onCancel={() => setShowResetModal(false)}
-      />
     </div>
   );
 };
